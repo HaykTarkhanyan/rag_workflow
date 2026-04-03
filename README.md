@@ -37,7 +37,8 @@ RAG system with Armenian embeddings + Claude Code workflow for RAG development b
 
 ### Next
 
-- [ ] Build evaluation script (recall@k, MRR, precision) comparing both strategies
+- [ ] Generate QA test pairs from sentence-level chunks (current pairs are biased toward paragraph)
+- [ ] Rerun evaluation with Gemini 3 Flash Preview + sentence-level QA pairs
 - [ ] Build retrieval/query interface
 - [ ] Scrape more data sources for RAG corpus
 - [ ] Build Claude Code skills for common RAG operations

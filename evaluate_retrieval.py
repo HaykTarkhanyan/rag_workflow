@@ -52,6 +52,7 @@ logger = logging.getLogger("evaluate")
 # Gemini pricing (per 1M tokens, as of 2026-04)
 GEMINI_PRICING = {
     "gemini-2.5-flash": {"input": 0.15, "output": 0.60},  # $/1M tokens
+    "gemini-3-flash-preview": {"input": 0.15, "output": 0.60},  # $/1M tokens (preview, check pricing)
 }
 
 MODEL_NAME = "Metric-AI/armenian-text-embeddings-2-large"
@@ -180,7 +181,7 @@ def gemini_judge(qa_pairs, strategy_results, strategy):
 
     client = genai.Client(api_key=api_key)
 
-    gemini_model = "gemini-2.5-flash"
+    gemini_model = "gemini-3-flash-preview"
     print(f"  Judging {len(qa_pairs)} answers with {gemini_model}...")
     chroma_client = chromadb.PersistentClient(path=str(CHROMA_DIR))
     collection = chroma_client.get_collection(f"infocom_investigations_{strategy}")

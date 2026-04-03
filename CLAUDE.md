@@ -11,7 +11,7 @@
 ## AI API Usage
 
 - Every time an AI API request is made (Gemini, etc.), log and display the cost/token usage so the user knows how much it cost.
-- Use `gemini-2.5-flash` as the default Gemini model (update if user specifies differently).
+- Use `gemini-3-flash-preview` as the default Gemini model.
 - API keys are stored in `.env` (gitignored).
 - **IMPORTANT:** Never change AI model names, API configurations, or other critical parameters without asking the user first. Always confirm before making such changes.
 
