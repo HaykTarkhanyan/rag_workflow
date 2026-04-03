@@ -12,8 +12,8 @@ import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
 
 
-MODEL_NAME = "Metric-AI/armenian-text-embeddings-2-base"
-# For higher quality (but slower): "Metric-AI/armenian-text-embeddings-2-large"
+MODEL_NAME = "Metric-AI/armenian-text-embeddings-2-large"
+# Smaller/faster alternative: "Metric-AI/armenian-text-embeddings-2-base"
 
 
 def average_pool(last_hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
