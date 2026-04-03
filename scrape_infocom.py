@@ -147,6 +147,16 @@ def extract_json_ld(soup: BeautifulSoup) -> dict | None:
     return None
 
 
+def _get_text_safe(el) -> str:
+    """Get text from an element preserving spaces between inline tags.
+
+    BeautifulSoup's get_text(strip=True) eats spaces at element boundaries
+    (e.g., <em>word1 </em><em>word2</em> becomes 'word1word2').
+    Using ' '.join(stripped_strings) preserves word boundaries.
+    """
+    return " ".join(el.stripped_strings)
+
+
 def _extract_from_element(el) -> str:
     """Extract text from an element, using <p> tags if available, else get_text()."""
     block_tags = ["p", "h2", "h3", "h4", "blockquote", "li"]
@@ -154,16 +164,16 @@ def _extract_from_element(el) -> str:
     if blocks:
         paragraphs = []
         for b in blocks:
-            text = b.get_text(strip=True)
+            text = _get_text_safe(b)
             if text:
                 paragraphs.append(text)
         extracted = "\n\n".join(paragraphs)
         # Check if we captured most of the text (>60%)
-        full_text = el.get_text(strip=True)
+        full_text = _get_text_safe(el)
         if len(extracted) > len(full_text) * 0.6:
             return extracted
-    # Fallback: get all text with newlines as separator
-    return el.get_text(separator="\n", strip=True)
+    # Fallback: join all text nodes with spaces preserved
+    return _get_text_safe(el)
 
 
 def extract_article_content(soup: BeautifulSoup) -> str:
@@ -194,7 +204,7 @@ def extract_article_content(soup: BeautifulSoup) -> str:
     # Fallback: any text-editor widget on the page with substantial text
     content_parts = []
     for widget in soup.select(".elementor-widget-text-editor"):
-        text = widget.get_text(separator="\n", strip=True)
+        text = _get_text_safe(widget)
         if text and len(text) > 50:
             content_parts.append(text)
     return "\n\n".join(content_parts) if content_parts else ""
