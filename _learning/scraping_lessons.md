@@ -1,6 +1,6 @@
-# Scraping Lessons
+# Project Lessons
 
-Mistakes, gotchas, and solutions discovered while building scrapers for this project.
+Mistakes, gotchas, and solutions discovered while building the RAG pipeline.
 
 ---
 
@@ -140,3 +140,70 @@ with open(os.path.join(dist_dir, 'METADATA'), 'w') as f:
 ```
 
 **Lesson:** Pick one package manager and stick with it. If you must mix, check `importlib.metadata.version()` after installs to catch corrupted metadata early. Better yet, use a virtual environment to isolate project deps.
+
+---
+
+## 9. CPU embedding of large models is impractically slow
+
+**Problem:** Metric-AI/armenian-text-embeddings-2-large (560M params) takes ~99 seconds per chunk on CPU (Intel i7 + Iris Xe). 421 paragraph chunks = ~11 hours. The model loaded fine but forward passes were extremely slow.
+
+**Root cause:** The 560M param XLM-RoBERTa model with 24 layers needs GPU acceleration. Intel Iris Xe has no CUDA support.
+
+**Fix:** Created a Colab notebook (`notebooks/embed_chunks_colab.ipynb`) that:
+1. Clones the repo (`git clone`)
+2. Loads chunks from `scraped_data/chunks_{strategy}.json`
+3. Embeds on free T4 GPU (~2 min for 421 chunks, ~5 min for 1390)
+4. Saves `.npy` files for local ChromaDB loading
+
+**Lesson:** Always check GPU availability before planning embedding pipelines. If CPU-only, estimate time first (benchmark 10 chunks). For 500M+ param models, plan for Colab/cloud from the start. Separate embedding (GPU) from indexing (local ChromaDB) to work around hardware constraints.
+
+---
+
+## 10. Colab notebook pitfalls
+
+**Problem 1:** `!pip install torch` on Colab replaces the pre-installed CUDA torch with CPU-only torch. Only install transformers.
+
+**Problem 2:** `torch.cuda.get_device_properties(0).total_mem` doesn't exist -- the correct attribute is `total_memory`.
+
+**Problem 3:** When editing notebooks via NotebookEdit, old cells can remain as duplicates if not carefully tracked. Always verify final cell order with a script.
+
+**Problem 4:** Colab output buffering makes background commands appear stuck -- output only appears after the process completes or the pipe buffer fills.
+
+**Lesson:** For Colab notebooks: don't reinstall torch, use `total_memory` not `total_mem`, verify cell order after edits, and don't rely on background output for progress monitoring.
+
+---
+
+## 11. Separate embedding computation from vector DB indexing
+
+**Approach:** The pipeline is split into:
+1. `chunk_articles.py` -- creates chunk JSON files (local, fast)
+2. Colab notebook -- embeds chunks, saves `.npy` files (GPU, minutes)
+3. `load_embeddings.py` -- loads `.npy` + chunk JSON into ChromaDB (local, seconds)
+
+This separation means:
+- Re-chunking doesn't require re-embedding
+- Re-indexing doesn't require GPU access
+- Embeddings are cached as `.npy` files for reuse
+- Can compare strategies by having two ChromaDB collections side-by-side
+
+**Lesson:** Design pipelines with clear stage boundaries. Cache intermediate outputs (raw HTML, chunks JSON, embeddings .npy). Each stage should be independently re-runnable.
+
+---
+
+## Summary of scraping approach
+
+1. **Explore** the site with Fetch MCP (markdown mode) to understand the content
+2. **Inspect** with Playwright MCP to find article URLs and HTML structure
+3. **Build** the scraper with httpx + BeautifulSoup, caching raw HTML
+4. **Test** on a few articles, check content length distribution
+5. **Cross-check** scraped output against live page to verify completeness
+6. **Iterate** on parsing using `--parse` flag (no network needed)
+
+## Summary of embedding approach
+
+1. **Analyze** corpus stats to determine chunking parameters
+2. **Chunk** with multiple strategies, save as JSON
+3. **Benchmark** embedding speed before committing to batch runs
+4. **Embed** on GPU (Colab) if local GPU unavailable
+5. **Index** into vector DB locally from cached .npy files
+6. **Compare** strategies using test QA pairs
