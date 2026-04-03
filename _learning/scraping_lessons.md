@@ -122,3 +122,21 @@ text = " ".join(el.stripped_strings)  # -> "word1 word2"
 4. **Test** on a few articles, check content length distribution
 5. **Cross-check** scraped output against live page to verify completeness
 6. **Iterate** on parsing using `--parse` flag (no network needed)
+
+---
+
+## 8. Mixing uv and pip corrupts package metadata on Windows
+
+**Problem:** After installing chromadb with `uv pip install --system` and then using `pip install` to upgrade transformers/numpy/torch, the `dist-info/METADATA` files became empty. This caused `importlib.metadata.version("torch")` to return `None`, which crashed transformers' version check.
+
+**Root cause:** `uv` and `pip` manage the same site-packages but use different metadata strategies. When one tool upgrades a package, it can leave behind stale or empty dist-info directories from the other.
+
+**Fix:** Manually recreate the METADATA files:
+```python
+import os
+dist_dir = r'...\site-packages\torch-2.5.1+cpu.dist-info'
+with open(os.path.join(dist_dir, 'METADATA'), 'w') as f:
+    f.write('Metadata-Version: 2.1\nName: torch\nVersion: 2.5.1+cpu\n')
+```
+
+**Lesson:** Pick one package manager and stick with it. If you must mix, check `importlib.metadata.version()` after installs to catch corrupted metadata early. Better yet, use a virtual environment to isolate project deps.
