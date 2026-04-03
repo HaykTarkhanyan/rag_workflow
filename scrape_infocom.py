@@ -147,43 +147,51 @@ def extract_json_ld(soup: BeautifulSoup) -> dict | None:
     return None
 
 
+def _extract_from_element(el) -> str:
+    """Extract text from an element, using <p> tags if available, else get_text()."""
+    block_tags = ["p", "h2", "h3", "h4", "blockquote", "li"]
+    blocks = el.find_all(block_tags)
+    if blocks:
+        paragraphs = []
+        for b in blocks:
+            text = b.get_text(strip=True)
+            if text:
+                paragraphs.append(text)
+        extracted = "\n\n".join(paragraphs)
+        # Check if we captured most of the text (>60%)
+        full_text = el.get_text(strip=True)
+        if len(extracted) > len(full_text) * 0.6:
+            return extracted
+    # Fallback: get all text with newlines as separator
+    return el.get_text(separator="\n", strip=True)
+
+
 def extract_article_content(soup: BeautifulSoup) -> str:
     """Extract the main article text content."""
-    # Try single-container selectors first
-    single_selectors = [
-        ".elementor-widget-theme-post-content .elementor-widget-container",
+    # Template 1 (older articles): single-post with theme-post-content
+    for selector in [
+        '[data-elementor-type="single-post"] .elementor-widget-theme-post-content',
         ".elementor-widget-theme-post-content",
         ".entry-content",
-    ]
-    for selector in single_selectors:
+    ]:
         el = soup.select_one(selector)
-        if el:
-            paragraphs = []
-            for p in el.find_all(["p", "h2", "h3", "h4", "blockquote", "li"]):
-                text = p.get_text(strip=True)
-                if text:
-                    paragraphs.append(text)
-            if paragraphs:
-                return "\n\n".join(paragraphs)
+        if el and len(el.get_text(strip=True)) > 100:
+            return _extract_from_element(el)
 
-    # Infocom uses multiple .elementor-widget-text-editor blocks inside wp-post
+    # Template 2 (newer articles): wp-post with multiple text-editor blocks
     post_container = soup.select_one('[data-elementor-type="wp-post"]')
     if post_container:
         widgets = post_container.select(".elementor-widget-text-editor")
         if widgets:
             content_parts = []
             for widget in widgets:
-                paragraphs = []
-                for p in widget.find_all(["p", "h2", "h3", "h4", "blockquote", "li"]):
-                    text = p.get_text(strip=True)
-                    if text:
-                        paragraphs.append(text)
-                if paragraphs:
-                    content_parts.append("\n\n".join(paragraphs))
+                text = _extract_from_element(widget)
+                if text and len(text) > 30:
+                    content_parts.append(text)
             if content_parts:
                 return "\n\n".join(content_parts)
 
-    # Last fallback: any text-editor widget on the page
+    # Fallback: any text-editor widget on the page with substantial text
     content_parts = []
     for widget in soup.select(".elementor-widget-text-editor"):
         text = widget.get_text(separator="\n", strip=True)
