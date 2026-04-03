@@ -212,3 +212,4 @@ scraped_data/cache/
 # Playwright MCP
 .playwright-mcp/
 scraped_data/chroma_db/
+logs/
