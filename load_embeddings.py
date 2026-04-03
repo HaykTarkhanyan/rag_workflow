@@ -4,7 +4,6 @@ Load pre-computed embeddings (from Colab) into ChromaDB.
 Usage:
     python load_embeddings.py --strategy paragraph
     python load_embeddings.py --strategy sentence
-    python load_embeddings.py --strategy paragraph --query "search text"
 
 Expects in scraped_data/:
     embeddings_paragraph.npy          (numpy array, shape [N, 1024])
@@ -39,6 +38,10 @@ def load_and_index(strategy: str, reset: bool = False):
     chunks = meta["chunks"]
 
     print(f"Loaded {len(chunks)} chunks, embeddings shape: {embeddings.shape}")
+
+    if len(chunks) != embeddings.shape[0]:
+        print(f"ERROR: Mismatch! {len(chunks)} chunks but {embeddings.shape[0]} embeddings")
+        sys.exit(1)
 
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
     collection_name = f"infocom_investigations_{strategy}"
@@ -83,12 +86,6 @@ def load_and_index(strategy: str, reset: bool = False):
         )
 
     print(f"Indexed {collection.count()} chunks into '{collection_name}'")
-
-
-def query(strategy: str, query_text: str, n_results: int = 5):
-    """Query requires the model for embedding the query. Use embed_and_index.py --query instead."""
-    print("For querying, use: .venv/Scripts/python embed_and_index.py --strategy", strategy, "--query", f'"{query_text}"')
-    print("(load_embeddings.py only loads pre-computed vectors, it doesn't embed queries)")
 
 
 def main():
