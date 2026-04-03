@@ -22,11 +22,17 @@ RAG system with Armenian embeddings + Claude Code workflow for RAG development b
 - [x] First scraper: `scrape_infocom.py` -- 65 Infocom.am investigation articles (600K chars, full metadata)
   - Caching, `--force` / `--parse` flags, handles two Elementor templates
 - [x] Learnings documented in `_learning/` (scraping gotchas, BeautifulSoup pitfalls)
+- [x] Corpus stats script (`corpus_stats.py`) -- word/sentence/paragraph distributions, token estimates, metadata coverage
+- [x] Chunking script (`chunk_articles.py`) -- two strategies:
+  - Sentence-group (~110 tokens, 1,390 chunks) -- matches 128-token training window
+  - Paragraph-group (~350 tokens, 421 chunks) -- uses more of 512-token inference limit
+- [x] Article IDs added (e.g., `infocom_10007787`)
 
 ### Next
 
-- [ ] Set up RAG pipeline (ingestion, chunking, embedding, retrieval)
-- [ ] Integrate Metric-AI Armenian embeddings into the pipeline
+- [ ] Embed chunks with Metric-AI large model + store in ChromaDB
+- [ ] Build retrieval/query interface
+- [ ] Compare sentence vs paragraph chunking retrieval quality
 - [ ] Scrape more data sources for RAG corpus
 - [ ] Build Claude Code skills for common RAG operations
 - [ ] Vector database selection and setup
@@ -48,6 +54,8 @@ rag_workflow/
   _learning/           # Documented approaches, mistakes, and fixes
   scraped_data/        # Scraped articles (JSON) + HTML cache
   scrape_infocom.py    # Infocom.am investigation article scraper
+  corpus_stats.py      # Corpus statistics for chunking/embedding decisions
+  chunk_articles.py    # Chunking (sentence-group and paragraph-group strategies)
   armenian_embeddings_demo.py  # Embeddings model demo
   CLAUDE.md            # Project guidelines for Claude Code
 ```
