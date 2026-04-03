@@ -11,6 +11,12 @@ Reference documentation for building RAG systems and Claude Code workflows.
 | [rag_python_frameworks.md](rag_python_frameworks.md) | LangChain vs LlamaIndex vs Haystack vs DSPy + others, comparison matrix |
 | [rag_vector_databases.md](rag_vector_databases.md) | 10 vector DBs compared, retrieval strategies, reranking, query transformation |
 
+## Web Scraping & Data Ingestion
+
+| File | Topic |
+|------|-------|
+| [web_scraping_tools.md](web_scraping_tools.md) | MCP servers, Claude skills, Python libraries, AI-powered scrapers for RAG |
+
 ## Claude Code Workflows
 
 | File | Topic |
