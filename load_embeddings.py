@@ -4,10 +4,11 @@ Load pre-computed embeddings (from Colab) into ChromaDB.
 Usage:
     python load_embeddings.py --strategy paragraph
     python load_embeddings.py --strategy sentence
+    python load_embeddings.py --strategy paragraph --reset
 
 Expects in scraped_data/:
-    embeddings_paragraph.npy          (numpy array, shape [N, 1024])
-    embeddings_paragraph_meta.json    (chunk metadata)
+    embeddings_{strategy}.npy              (numpy array from Colab)
+    chunks_{strategy}.json                 (chunk text + metadata)
 """
 
 import argparse
@@ -26,16 +27,21 @@ CHROMA_DIR = DATA_DIR / "chroma_db"
 
 def load_and_index(strategy: str, reset: bool = False):
     npy_file = DATA_DIR / f"embeddings_{strategy}.npy"
-    meta_file = DATA_DIR / f"embeddings_{strategy}_meta.json"
+    chunks_file = DATA_DIR / f"chunks_{strategy}.json"
 
-    if not npy_file.exists() or not meta_file.exists():
-        print(f"ERROR: Missing {npy_file} or {meta_file}")
-        print("Run the Colab notebook first, then place downloaded files in scraped_data/")
+    if not npy_file.exists():
+        print(f"ERROR: Missing {npy_file}")
+        print("Run the Colab notebook first, then place the .npy file in scraped_data/")
+        sys.exit(1)
+
+    if not chunks_file.exists():
+        print(f"ERROR: Missing {chunks_file}")
+        print("Run chunk_articles.py --strategy", strategy, "first")
         sys.exit(1)
 
     embeddings = np.load(npy_file)
-    meta = json.loads(meta_file.read_text(encoding="utf-8"))
-    chunks = meta["chunks"]
+    data = json.loads(chunks_file.read_text(encoding="utf-8"))
+    chunks = data["chunks"]
 
     print(f"Loaded {len(chunks)} chunks, embeddings shape: {embeddings.shape}")
 
@@ -50,7 +56,7 @@ def load_and_index(strategy: str, reset: bool = False):
         try:
             client.delete_collection(collection_name)
             print(f"Deleted existing collection: {collection_name}")
-        except ValueError:
+        except Exception:
             pass
 
     collection = client.get_or_create_collection(
