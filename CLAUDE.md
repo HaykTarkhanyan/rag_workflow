@@ -32,7 +32,7 @@ When the user greets you (hi, hello, hey, etc.) or starts a new session, automat
 1. Run `git fetch` and report current branch, any remote changes, open PRs
 2. Check for other branches and uncommitted changes
 3. Show a quick project status (corpus size, ChromaDB collections, pending TODOs from README)
-4. Tell a short programming joke
+4. Tell a short joke (not necessarily about programming)
 
 ## Hooks
 

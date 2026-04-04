@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/scripts/check-venv.sh \"$TOOL_INPUT\""
+            "command": "bash .claude/scripts/check-venv.sh"
           }
         ]
       }

@@ -1,11 +1,16 @@
 #!/bin/bash
 # Pre-Bash hook: warn if running python without .venv
-# Checks if the command uses system python instead of .venv
+# $TOOL_INPUT is JSON like {"command":"python ...","description":"..."}
 
-CMD="$1"
+# Extract the command field from JSON input
+CMD=$(echo "$TOOL_INPUT" | grep -oP '"command"\s*:\s*"[^"]*"' | head -1 | sed 's/.*: *"//;s/"$//')
 
-# Only check python commands
-if echo "$CMD" | grep -qE '^python[3.]* ' 2>/dev/null; then
+if [ -z "$CMD" ]; then
+    exit 0
+fi
+
+# Only check if command starts with python (not .venv/Scripts/python)
+if echo "$CMD" | grep -qE '^python[3.]?(\s|$)' 2>/dev/null; then
     if ! echo "$CMD" | grep -q '.venv' 2>/dev/null; then
         echo "WARNING: Use .venv/Scripts/python.exe instead of system python"
         echo "System Python has corrupted metadata and may segfault."
