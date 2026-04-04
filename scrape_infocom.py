@@ -185,7 +185,7 @@ def extract_article_content(soup: BeautifulSoup) -> str:
         ".entry-content",
     ]:
         el = soup.select_one(selector)
-        if el and len(el.get_text(strip=True)) > 100:
+        if el and len(_get_text_safe(el)) > 100:
             return _extract_from_element(el)
 
     # Template 2 (newer articles): wp-post with multiple text-editor blocks
@@ -295,7 +295,8 @@ def main():
             title = article.get("title", "No title")[:60]
             print(f"[{i}/{len(article_urls)}] Parsed: {title}")
     else:
-        with httpx.Client(headers=HEADERS, follow_redirects=True, timeout=30) as client:
+        transport = httpx.HTTPTransport(retries=3)
+    with httpx.Client(headers=HEADERS, follow_redirects=True, timeout=30, transport=transport) as client:
             # Step 1: Collect URLs
             print("=" * 60)
             print("Step 1: Collecting article URLs")

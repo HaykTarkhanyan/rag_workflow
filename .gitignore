@@ -213,3 +213,4 @@ scraped_data/cache/
 .playwright-mcp/
 scraped_data/chroma_db/
 logs/
+scraped_data/embeddings_cache/

@@ -239,3 +239,29 @@ Nothing verifies that:
 3. BUG-2: Add batching to `evaluate_retrieval.py` embed_texts
 4. DESIGN-5: Account for title prefix tokens in chunk token estimates
 5. HOOK-1: Fix grep `-oP` portability for Windows
+
+---
+
+## Fixes Applied
+
+All issues below were fixed in commit following this audit:
+
+- **BUG-1**: Changed `except ValueError` to `except Exception` in embed_and_index.py
+- **BUG-2**: evaluate_retrieval.py now uses shared `embed_texts()` with batching from utils
+- **BUG-3**: `chunk_by_units` takes explicit `separator` param, no more `units[0]` heuristic
+- **BUG-4**: Removed mutation of source data in chunk_articles.py (no longer writes back to infocom_investigations.json)
+- **BUG-5**: Changed `get_text(strip=True)` to `_get_text_safe()` in scrape_infocom.py length check
+- **BUG-6**: Removed unused `all_words` variable from corpus_stats.py
+- **SEC-2**: Expanded secret scanner to catch `gsk_`, `hf_`, `password=`, `secret=`, `token=`
+- **SEC-3**: Added `.env.example`
+- **DUP-1,2,3 + DESIGN-3**: Created `utils/embeddings.py` with shared `average_pool`, `load_model`, `embed_batch`, `embed_texts`, `build_chroma_metadata`
+- **DESIGN-2**: Added `scraped_data/embeddings_cache/` to `.gitignore`
+- **DESIGN-5**: Added `embedding_token_estimate` field that includes title prefix tokens
+- **HOOK-1**: Replaced `grep -oP` with portable `sed` extraction
+- **HOOK-2**: Regex now matches `ENVVAR=x python`, `cd x && python`, etc.
+- **MISS-1**: Added `httpx.HTTPTransport(retries=3)` to scraper
+- **PERF-2**: evaluate_retrieval.py uses shared model loader
+
+**Not fixed (by design):**
+- DESIGN-1: .npy files intentionally committed (user preference)
+- DESIGN-6: Infocom-only naming is fine (single source)

@@ -49,7 +49,6 @@ def main():
 
     # Collect per-article stats
     stats = []
-    all_words = []
     for a in articles:
         content = a["content"]
         words = word_count(content)
@@ -67,7 +66,6 @@ def main():
             "paragraphs": paras,
             "avg_word_len": avg_word_len,
         })
-        all_words.extend(content.split())
 
     # Overall corpus stats
     total_words = sum(s["words"] for s in stats)

@@ -26,38 +26,22 @@ from pathlib import Path
 
 import chromadb
 import numpy as np
-import torch
-import torch.nn.functional as F
-from transformers import AutoModel, AutoTokenizer
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import functools
 print = functools.partial(print, flush=True)
 
-MODEL_NAME = "Metric-AI/armenian-text-embeddings-2-large"
-EMBEDDING_DIM = 1024
-BATCH_SIZE = 8  # smaller batch = less memory, more frequent progress
+from utils.embeddings import (
+    MODEL_NAME, EMBEDDING_DIM, DEFAULT_BATCH_SIZE,
+    load_model, embed_batch, average_pool, build_chroma_metadata,
+)
+
+BATCH_SIZE = DEFAULT_BATCH_SIZE
 
 CHUNKS_DIR = Path("scraped_data")
 CHROMA_DIR = Path("scraped_data/chroma_db")
 CACHE_DIR = Path("scraped_data/embeddings_cache")
-
-
-def average_pool(last_hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
-    last_hidden = last_hidden_states.masked_fill(~attention_mask[..., None].bool(), 0.0)
-    return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
-
-
-def load_model():
-    """Load tokenizer and model."""
-    print(f"Loading model: {MODEL_NAME}")
-    t0 = time.time()
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModel.from_pretrained(MODEL_NAME)
-    model.eval()
-    print(f"Model loaded in {time.time() - t0:.1f}s")
-    return tokenizer, model
 
 
 def cache_key(text: str) -> str:
@@ -77,18 +61,6 @@ def save_cached_embedding(text: str, embedding: list[float]):
     """Save embedding to cache."""
     path = CACHE_DIR / f"{cache_key(text)}.npy"
     np.save(path, np.array(embedding, dtype=np.float32))
-
-
-def embed_batch(texts: list[str], tokenizer, model) -> list[list[float]]:
-    """Embed a single batch of texts."""
-    batch_dict = tokenizer(
-        texts, max_length=512, padding=True, truncation=True, return_tensors="pt"
-    )
-    with torch.no_grad():
-        outputs = model(**batch_dict)
-    embeddings = average_pool(outputs.last_hidden_state, batch_dict["attention_mask"])
-    embeddings = F.normalize(embeddings, p=2, dim=1)
-    return embeddings.tolist()
 
 
 def embed_texts_with_cache(texts: list[str], tokenizer, model) -> list[list[float]]:
@@ -146,7 +118,7 @@ def get_collection(strategy: str, reset: bool = False) -> chromadb.Collection:
         try:
             client.delete_collection(collection_name)
             print(f"Deleted existing collection: {collection_name}")
-        except ValueError:
+        except Exception:
             pass
 
     collection = client.get_or_create_collection(
@@ -197,19 +169,7 @@ def index_chunks(strategy: str, reset: bool = False, limit: int | None = None):
                 ids=[c["chunk_id"] for c in batch_chunks],
                 embeddings=batch_embeddings,
                 documents=[c["text"] for c in batch_chunks],
-                metadatas=[
-                    {
-                        "article_id": c["metadata"]["article_id"],
-                        "title": c["metadata"]["title"],
-                        "author": c["metadata"]["author"],
-                        "published_at": c["metadata"]["published_at"],
-                        "url": c["metadata"]["url"],
-                        "chunk_index": c["chunk_index"],
-                        "total_chunks": c["total_chunks"],
-                        "strategy": strategy,
-                    }
-                    for c in batch_chunks
-                ],
+                metadatas=[build_chroma_metadata(c, strategy) for c in batch_chunks],
             )
 
     print(f"Indexed {collection.count()} chunks into '{collection.name}'")

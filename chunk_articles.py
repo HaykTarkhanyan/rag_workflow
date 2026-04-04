@@ -67,6 +67,7 @@ def chunk_by_units(
     target_tokens: int,
     max_tokens: int,
     overlap: int,
+    separator: str = " ",
 ) -> list[dict]:
     """Group text units (sentences or paragraphs) into chunks.
 
@@ -90,7 +91,7 @@ def chunk_by_units(
                 break
             j += 1
 
-        chunk_text = " ".join(chunk_units) if len(units[0].split("\n")) <= 1 else "\n\n".join(chunk_units)
+        chunk_text = separator.join(chunk_units)
         chunks.append({
             "text": chunk_text,
             "unit_start": i,
@@ -133,16 +134,17 @@ def chunk_article(article: dict, article_id: str, strategy: str) -> list[dict]:
 
     if strategy == "sentence":
         units = split_sentences(content)
-        raw_chunks = chunk_by_units(units, SENTENCE_TARGET_TOKENS, SENTENCE_MAX_TOKENS, SENTENCE_OVERLAP_SENTS)
+        sep = " "
+        raw_chunks = chunk_by_units(units, SENTENCE_TARGET_TOKENS, SENTENCE_MAX_TOKENS, SENTENCE_OVERLAP_SENTS, separator=sep)
     else:  # paragraph
         units = split_paragraphs(content)
-        raw_chunks = chunk_by_units(units, PARAGRAPH_TARGET_TOKENS, PARAGRAPH_MAX_TOKENS, PARAGRAPH_OVERLAP_PARAS)
+        sep = "\n\n"
+        raw_chunks = chunk_by_units(units, PARAGRAPH_TARGET_TOKENS, PARAGRAPH_MAX_TOKENS, PARAGRAPH_OVERLAP_PARAS, separator=sep)
 
     # Filter out tiny trailing chunks -- merge into previous if possible
     MIN_TOKENS = 20
     if len(raw_chunks) > 1 and raw_chunks[-1]["token_estimate"] < MIN_TOKENS:
         last = raw_chunks.pop()
-        sep = " " if strategy == "sentence" else "\n\n"
         raw_chunks[-1]["text"] += sep + last["text"]
         raw_chunks[-1]["token_estimate"] = estimate_tokens(raw_chunks[-1]["text"])
 
@@ -151,6 +153,8 @@ def chunk_article(article: dict, article_id: str, strategy: str) -> list[dict]:
         # Short metadata prefix for embedding context
         prefix = f"{metadata['title']}"
         chunk_text_for_embedding = f"passage: {prefix}. {rc['text']}"
+        # Token estimate includes the prefix that actually gets sent to the model
+        embedding_token_estimate = estimate_tokens(chunk_text_for_embedding)
 
         chunks.append({
             "chunk_id": f"{article_id}_chunk_{i:03d}",
@@ -160,6 +164,7 @@ def chunk_article(article: dict, article_id: str, strategy: str) -> list[dict]:
             "text": rc["text"],
             "text_for_embedding": chunk_text_for_embedding,
             "token_estimate": rc["token_estimate"],
+            "embedding_token_estimate": embedding_token_estimate,
             "metadata": metadata,
         })
 
@@ -183,8 +188,6 @@ def main():
     all_chunks = []
     for idx, article in enumerate(articles):
         article_id = make_article_id(article, idx)
-        # Also store the ID back on the article for reference
-        article["article_id"] = article_id
         chunks = chunk_article(article, article_id, args.strategy)
         all_chunks.extend(chunks)
 
@@ -243,10 +246,6 @@ def main():
 
     output_file.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nSaved {len(all_chunks)} chunks to {output_file}")
-
-    # Also save the updated articles with IDs
-    DATA_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Updated articles with IDs in {DATA_FILE}")
 
 
 if __name__ == "__main__":

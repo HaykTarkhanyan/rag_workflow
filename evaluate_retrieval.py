@@ -24,10 +24,7 @@ from pathlib import Path
 
 import chromadb
 import numpy as np
-import torch
-import torch.nn.functional as F
 from dotenv import load_dotenv
-from transformers import AutoModel, AutoTokenizer
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -55,24 +52,11 @@ GEMINI_PRICING = {
     "gemini-3-flash-preview": {"input": 0.15, "output": 0.60},  # $/1M tokens (preview, check pricing)
 }
 
-MODEL_NAME = "Metric-AI/armenian-text-embeddings-2-large"
+from utils.embeddings import MODEL_NAME, load_model, embed_texts
+
 CHROMA_DIR = Path("scraped_data/chroma_db")
 QA_FILE = Path("test_data/qa_pairs.json")
 RESULTS_FILE = Path("test_data/eval_results.json")
-
-
-def average_pool(last_hidden_states, attention_mask):
-    last_hidden = last_hidden_states.masked_fill(~attention_mask[..., None].bool(), 0.0)
-    return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
-
-
-def embed_texts(texts, tokenizer, model):
-    """Embed texts on CPU."""
-    batch = tokenizer(texts, max_length=512, padding=True, truncation=True, return_tensors="pt")
-    with torch.no_grad():
-        out = model(**batch)
-    emb = average_pool(out.last_hidden_state, batch["attention_mask"])
-    return F.normalize(emb, p=2, dim=1).tolist()
 
 
 def recall_at_k(retrieved_ids: list[str], expected_ids: list[str], k: int) -> float:
@@ -312,9 +296,7 @@ def main():
 
     # Load model and embed questions
     print(f"\nLoading model: {MODEL_NAME}")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModel.from_pretrained(MODEL_NAME)
-    model.eval()
+    tokenizer, model = load_model()
 
     questions = [f"query: {qa['question']}" for qa in qa_pairs]
     print(f"Embedding {len(questions)} questions...")

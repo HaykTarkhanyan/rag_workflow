@@ -19,6 +19,8 @@ from pathlib import Path
 import chromadb
 import numpy as np
 
+from utils.embeddings import build_chroma_metadata
+
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 DATA_DIR = Path("scraped_data")
@@ -76,19 +78,7 @@ def load_and_index(strategy: str, reset: bool = False):
             ids=[c["chunk_id"] for c in batch],
             embeddings=batch_emb,
             documents=[c["text"] for c in batch],
-            metadatas=[
-                {
-                    "article_id": c["metadata"]["article_id"],
-                    "title": c["metadata"]["title"],
-                    "author": c["metadata"]["author"],
-                    "published_at": c["metadata"]["published_at"],
-                    "url": c["metadata"]["url"],
-                    "chunk_index": c["chunk_index"],
-                    "total_chunks": c["total_chunks"],
-                    "strategy": strategy,
-                }
-                for c in batch
-            ],
+            metadatas=[build_chroma_metadata(c, strategy) for c in batch],
         )
 
     print(f"Indexed {collection.count()} chunks into '{collection_name}'")
