@@ -3,7 +3,7 @@
 # $TOOL_INPUT is JSON like {"command":"python ...","description":"..."}
 
 # Extract the command field -- use sed instead of grep -P for portability
-CMD=$(echo "$TOOL_INPUT" | sed -n 's/.*"command"\s*:\s*"\([^"]*\)".*/\1/p' | head -1)
+CMD=$(echo "$TOOL_INPUT" | sed -n 's/.*"command" *: *"\([^"]*\)".*/\1/p' | head -1)
 
 if [ -z "$CMD" ]; then
     exit 0
